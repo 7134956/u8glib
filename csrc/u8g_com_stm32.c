@@ -15,6 +15,8 @@
 /* Настройка вывода A0 */
 #define SPI_PORT_A0			GPIOA
 #define SPI_PIN_A0			GPIO_Pin_4
+/* For speed SPI transfer. If SPI_CLK >= CPU_CLK/2 */
+//#define SPI_SKIP_BUSY
 /*---------------------End configure SPI for display ------------------------*/
 
 #define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */
@@ -186,8 +188,12 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 	}
 		break;
 	case U8G_COM_MSG_WRITE_BYTE: {
+#ifdef SPI_SKIP_BUSY
+		SPI_UNIT->DR = arg_val;
+#else				
 		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};
 		SPI_I2S_SendData(SPI1, arg_val);
+#endif
 	}
 		break;
 	case U8G_COM_MSG_WRITE_SEQ: {
@@ -198,8 +204,12 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 			for (i = 0; i < 4; i++) {
 				byte = ((*ptr & 128) / 8) | ((*ptr & 64) * 2); //Старший бит
 				*ptr <<= 2;
+#ifdef SPI_SKIP_BUSY
+				SPI_UNIT->DR = byte;
+#else				
 				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 
 				SPI_I2S_SendData(SPI1, byte);
+#endif
 			}
 			ptr++;
 			arg_val--;
