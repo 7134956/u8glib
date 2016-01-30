@@ -973,6 +973,10 @@ void bdf_ReadLine(const char *s) {
 			strcpy(bdf_font, p_buf);
 		} else if (strcmp(p_buf, "SIZE") == 0) {
 			bdf_font_size = p_get_val();
+		} else if (strcmp(p_buf, "FONT_ASCENT") == 0) {
+			bdf_char_xascent = p_get_val();
+		} else if (strcmp(p_buf, "FONT_DESCENT") == 0) {
+			bdf_char_xdescent = 0 - p_get_val();
 		} else if (strcmp(p_buf, "ENCODING") == 0) {
 			bdf_encoding = map_UnicodeToU8G(p_get_val());
 			bdf_StoreFilePos(bdf_encoding, bdf_last_line_start_pos);
