@@ -279,8 +279,61 @@ uint8_t u8g_dev_st7586s_jlx240160g666_4x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t 
 	return u8g_dev_pb32h1_base_fn(u8g, dev, msg, arg);
 }
 
+/*******************************************************************************
+ * jlx240160g-666 20x speed driver. Full frame buffer.
+ ******************************************************************************/
+uint8_t u8g_dev_st7586s_jlx240160g666_20x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg) {
+	uint16_t i;
+	switch (msg) {
+	case U8G_DEV_MSG_INIT:
+		u8g_InitCom(u8g, dev, NULL);
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_init_seq);
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_data_start);
+		u8g_SetAddress(u8g, dev, 1); // data mode
+		for (i = 0; i < (WIDTH * HEIGHT) / 2; i++) {
+			u8g_WriteByte(u8g, dev, 0x00); //Заполняем дисплей белым
+		}
+		break;
+	case U8G_DEV_MSG_PAGE_NEXT: {
+		uint8_t i;
+		uint8_t *ptr;
+		u8g_pb_t *pb = (u8g_pb_t *) (dev->dev_mem);
+		u8g_SetChipSelect(u8g, dev, 1);
+		ptr = pb->buf;
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_data_start);
+		u8g_SetAddress(u8g, dev, 1); // data mode 
+		for (i = 0; i < 160; i++) {
+			u8g_WriteSequence(u8g, dev, WIDTH / 8, ptr);
+			ptr += WIDTH / 8;
+		}
+		u8g_SetChipSelect(u8g, dev, 0);
+	}
+		break;
+	case U8G_DEV_MSG_CONTRAST:
+		u8g_SetChipSelect(u8g, dev, 1);
+		u8g_SetAddress(u8g, dev, 0); /* instruction mode */
+		u8g_WriteByte(u8g, dev, 0xC0);
+		u8g_SetAddress(u8g, dev, 1); /* data mode */
+		u8g_WriteByte(u8g, dev, *(uint8_t *) arg);
+		u8g_WriteByte(u8g, dev, 1);
+		u8g_SetChipSelect(u8g, dev, 0);
+		return 1;
+	case U8G_DEV_MSG_SLEEP_ON:
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_on);
+		return 1;
+	case U8G_DEV_MSG_SLEEP_OFF:
+		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_sleep_off); //Fail. Need reinit
+		return 1;
+	}
+	return u8g_dev_pb32h1_base_fn(u8g, dev, msg, arg);
+}
+
 U8G_PB_DEV(u8g_dev_st7586s_jlx240160g666_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, u8g_dev_st7586s_jlx240160g666_fn, U8G_COM_HW_SPI);
 
 uint8_t u8g_dev_st7586s_jlx240160g666_4x_buf[WIDTH * 4] U8G_NOCOMMON;
 u8g_pb_t u8g_dev_st7586s_jlx240160g666_4x_pb = { { 32, HEIGHT, 0, 0, 0 }, WIDTH, u8g_dev_st7586s_jlx240160g666_4x_buf };
 u8g_dev_t u8g_dev_st7586s_jlx240160g666_4x_hw_spi = { u8g_dev_st7586s_jlx240160g666_4x_fn, &u8g_dev_st7586s_jlx240160g666_4x_pb, U8G_COM_HW_SPI };
+
+uint8_t u8g_dev_st7586s_jlx240160g666_20x_buf[WIDTH * HEIGHT / 8] U8G_NOCOMMON;
+u8g_pb_t u8g_dev_st7586s_jlx240160g666_20x_pb = { { 160, HEIGHT, 0, 0, 0 }, WIDTH, u8g_dev_st7586s_jlx240160g666_20x_buf };
+u8g_dev_t u8g_dev_st7586s_jlx240160g666_20x_hw_spi = { u8g_dev_st7586s_jlx240160g666_20x_fn, &u8g_dev_st7586s_jlx240160g666_20x_pb, U8G_COM_HW_SPI };
