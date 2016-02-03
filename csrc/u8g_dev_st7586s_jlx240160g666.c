@@ -177,7 +177,7 @@ uint8_t u8g_dev_st7586s_jlx240160g666_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg
 	uint16_t i;
 	switch (msg) {
 	case U8G_DEV_MSG_INIT:
-		u8g_InitCom(u8g, dev, NULL);
+		u8g_InitCom(u8g, dev, 0);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_init_seq);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_data_start);
 		u8g_SetAddress(u8g, dev, 1); /* data mode */
@@ -228,7 +228,7 @@ uint8_t u8g_dev_st7586s_jlx240160g666_4x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t 
 	uint16_t i;
 	switch (msg) {
 	case U8G_DEV_MSG_INIT:
-		u8g_InitCom(u8g, dev, NULL);
+		u8g_InitCom(u8g, dev, 0);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_init_seq);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_data_start);
 		u8g_SetAddress(u8g, dev, 1); /* data mode */
@@ -286,7 +286,7 @@ uint8_t u8g_dev_st7586s_jlx240160g666_20x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t
 	uint16_t i;
 	switch (msg) {
 	case U8G_DEV_MSG_INIT:
-		u8g_InitCom(u8g, dev, NULL);
+		u8g_InitCom(u8g, dev, 0);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_init_seq);
 		u8g_WriteEscSeqP(u8g, dev, u8g_dev_st7586s_data_start);
 		u8g_SetAddress(u8g, dev, 1); // data mode

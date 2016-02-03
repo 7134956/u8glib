@@ -2,7 +2,7 @@
 
   u8g_pb32h1.c
   
-  2x 8bit height monochrom (1 bit) page buffer
+  4x 8bit height monochrom (1 bit) page buffer
   byte has horizontal orientation
 
   Universal 8bit Graphics Library

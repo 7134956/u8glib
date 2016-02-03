@@ -1,3 +1,34 @@
+﻿/*
+7134956@gmail.com 03.02.2016
+
+Com_fn unpack page buffer to display
+
+2 pixels on byte
+
+B-black
+W-white
+LG-Light gray
+DG-Dark Grey
+
+Gray mode
+0b00011000, B W
+0b00000000, W W
+0b00011000, B W
+0b11000000, W B
+0b11011000, B B
+0b10010000, DG DG
+0b01001000, LG LG
+
+BW mode
+0b00011000, B W
+0b00000000, W W
+0b00011000, B W
+0b11000000, W B
+0b11011000, B B
+0b10010000, B B
+0b01001000, W W
+*/
+
 #include "stm32f10x.h"
 #include "u8g.h"
 
@@ -20,10 +51,6 @@
 /*---------------------End configure SPI for display ------------------------*/
 
 #define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */
-
-#define WIDTH 240
-#define HEIGHT 160
-#define PAGE_HEIGHT 1
 
 #define SPI_8BIT 1
 #define SPI_16BIT 2
@@ -82,7 +109,7 @@ void SPIInit(uint8_t param) {
 	SPI_Unit_Init.SPI_CPOL = SPI_CPOL_High; //В режиме ожидания SCK - 1.
 	SPI_Unit_Init.SPI_NSS = SPI_NSS_Soft; //Програмный NSS (в железе отключено).
 	//Need clock 10Mhz by datasheet. Work tested on full speed 36Mhz.
-	SPI_Unit_Init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; //Скорость. 
+	SPI_Unit_Init.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; //Скорость.
 	SPI_Unit_Init.SPI_FirstBit = SPI_FirstBit_MSB; //Со старшего бита.
 	SPI_Unit_Init.SPI_CRCPolynomial = 7; //Фигня какая-то.
 
@@ -113,7 +140,7 @@ void delay_init(void) {
 	TIM_Cmd(TIM1, ENABLE);
 	
 	/* Выключаем тактирование */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, DISABLE);
 }
 
 /******************************************************************************
