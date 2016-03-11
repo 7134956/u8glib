@@ -715,6 +715,7 @@ uint8_t u8g_com_atxmega_st7920_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_va
 uint8_t u8g_com_msp430_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);      /* u8g_com_msp430_hw_spi.c */
 
 uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
+uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* u8g_com_stm32.c */
 
 uint8_t u8g_com_raspberrypi_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);                /* u8g_com_rasperrypi_hw_spi.c */
 uint8_t u8g_com_raspberrypi_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);		/* u8g_com_raspberrypi_ssd_i2c.c */
