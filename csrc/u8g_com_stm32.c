@@ -1,32 +1,5 @@
-﻿/*
-7134956@gmail.com 03.02.2016
-
-Com_fn unpack page buffer to display
-
-2 pixels on byte
-
-B-black
-W-white
-LG-Light gray
-DG-Dark Grey
-
-Gray mode
-0b00011000, B W
-0b00000000, W W
-0b00011000, B W
-0b11000000, W B
-0b11011000, B B
-0b10010000, DG DG
-0b01001000, LG LG
-
-BW mode
-0b00011000, B W
-0b00000000, W W
-0b00011000, B W
-0b11000000, W B
-0b11011000, B B
-0b10010000, B B
-0b01001000, W W
+/*
+7134956@gmail.com 2016
 */
 
 #include "stm32f10x.h"
@@ -35,7 +8,7 @@ BW mode
 /*---------------------Configure SPI for display ----------------------------*/
 /* Тактируем выбраные блоки */
 #define SPI_RCC				RCC_APB2Periph_GPIOA | RCC_APB2Periph_SPI1
-/* Настройка модуля SPI */
+/* Выбор модуля SPI */
 #define SPI_UNIT			SPI1
 /* Настройка выводов SPI */
 #define SPI_PORT			GPIOA
@@ -70,7 +43,7 @@ void SPIInit(uint8_t param) {
 	/* configure pins used by SPI1
 	 * PA4 = A0 (RS)
 	 * PA5 = SCK
-	 * PA6 = MISO используем как CS
+	 * PA6 = MISO use as CS
 	 * PA7 = MOSI (SDA)
 	 * CPOL = 1
 	 * CPHA = 1
@@ -180,6 +153,35 @@ void u8g_10MicroDelay(void) {
 
 /******************************************************************************
  *st7586s on SPI 8 bit
+
+Com_fn unpack page buffer to display
+
+2 pixels on byte
+
+B-black
+W-white
+LG-Light gray
+DG-Dark grey
+
+BW mode
+
+0b00011000, B W
+0b00000000, W W
+0b00011000, B W
+0b11000000, W B
+0b11011000, B B
+0b10010000, B B
+0b01001000, W W
+
+Gray mode
+0b00011000, B W
+0b00000000, W W
+0b00011000, B W
+0b11000000, W B
+0b11011000, B B
+0b10010000, DG DG
+0b01001000, LG LG
+
  *****************************************************************************/
 uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
 	switch (msg) {
@@ -238,6 +240,69 @@ uint8_t u8g_com_stm32_st7586s_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val
 				SPI_I2S_SendData(SPI1, byte);
 #endif
 			}
+			ptr++;
+			arg_val--;
+		}
+	}
+		break;
+	}
+	return 1;
+}
+
+/******************************************************************************
+ *Display on SPI 8 bit
+ *****************************************************************************/
+uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
+	switch (msg) {
+	case U8G_COM_MSG_STOP:
+		//Остановить устройство
+		break;
+	case U8G_COM_MSG_INIT: {
+		delay_init();
+		SPIInit(SPI_8BIT); //Инициализация SPI1 (stm32f1)
+	}
+		break;
+	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
+	{
+		if (arg_val == 0)
+			A0_LOW();
+		if (arg_val == 1)
+			A0_HIGH();
+	}
+		break;
+	case U8G_COM_MSG_CHIP_SELECT: {
+		if (arg_val == 0) {
+			RCC->APB2ENR &= ~RCC_APB2ENR_SPI1EN;
+			CS_OFF();
+		} else {
+			/* enable */
+			RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+			CS_ON();
+		}
+	}
+		break;
+	case U8G_COM_MSG_RESET: {
+		u8g_10MicroDelay();
+	}
+		break;
+	case U8G_COM_MSG_WRITE_BYTE: {
+#ifdef SPI_SKIP_BUSY
+		SPI_UNIT->DR = arg_val;
+#else				
+		while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {};
+		SPI_I2S_SendData(SPI1, arg_val);
+#endif
+	}
+		break;
+	case U8G_COM_MSG_WRITE_SEQ: {
+		register uint8_t *ptr = arg_ptr;
+		while (arg_val > 0) {
+#ifdef SPI_SKIP_BUSY
+				SPI_UNIT->DR = u8g_pgm_read(ptr);
+#else				
+				while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {}; 
+				SPI_I2S_SendData(SPI1, u8g_pgm_read(ptr));
+#endif
 			ptr++;
 			arg_val--;
 		}
