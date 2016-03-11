@@ -282,6 +282,11 @@ extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_hw_spi;
 extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_4x_hw_spi;
 extern u8g_dev_t u8g_dev_st7586s_jlx240160g666_20x_hw_spi;
 
+/* Display: JLX240160G-676-BN, Size: 240x160 monochrome or 4 gray levels */	 
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_hw_spi;
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_4x_hw_spi;
+extern u8g_dev_t u8g_dev_st75256_jlx240160g676_20x_hw_spi;
+
 /* EA DOGM 240-6 */
 extern u8g_dev_t u8g_dev_uc1611_dogm240_i2c;
 extern u8g_dev_t u8g_dev_uc1611_dogm240_hw_spi;
