@@ -49,9 +49,9 @@ void u8g_pb160v1_Set8PixelStd(u8g_pb_t *b, u8g_dev_arg_pixel_t *arg_pixel) U8G_N
 
 void u8g_pb160v1_Clear(u8g_pb_t *b)
 {
-  uint8_t *ptr = (uint8_t *)b->buf;
-  uint8_t *end_ptr = ptr;
-  end_ptr += b->width*20;
+  uint32_t *ptr = (uint32_t *)b->buf;
+  uint32_t *end_ptr = ptr;
+  end_ptr += b->width*5;
   do
   {
     *ptr++ = 0;
@@ -70,8 +70,7 @@ void u8g_pb160v1_set_pixel(u8g_pb_t *b, u8g_uint_t x, u8g_uint_t y, uint8_t colo
 {
   register uint8_t mask;
   uint8_t *ptr = b->buf;
-  
-  y -= b->p.page_y0;
+
   mask = 1;
 
   ptr += b->width*(y/8);
@@ -92,12 +91,6 @@ void u8g_pb160v1_set_pixel(u8g_pb_t *b, u8g_uint_t x, u8g_uint_t y, uint8_t colo
 
 void u8g_pb160v1_SetPixel(u8g_pb_t *b, const u8g_dev_arg_pixel_t * const arg_pixel)
 {
-  if ( arg_pixel->y < b->p.page_y0 )
-    return;
-  if ( arg_pixel->y > b->p.page_y1 )
-    return;
-  if ( arg_pixel->x >= b->width )
-    return;
   u8g_pb160v1_set_pixel(b, arg_pixel->x, arg_pixel->y, arg_pixel->color);
 }
 
