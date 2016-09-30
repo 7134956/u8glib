@@ -192,6 +192,7 @@ class U8GLIB : public Print
     u8g_uint_t getStrPixelWidthP(u8g_pgm_uint8_t *s) { return u8g_GetStrPixelWidthP(&u8g, s); }
     u8g_uint_t getStrWidth(const char *s) { return u8g_GetStrWidth(&u8g, s); } 
     u8g_uint_t getStrWidthP(u8g_pgm_uint8_t *s) { return u8g_GetStrWidthP(&u8g, s); }
+    int8_t getGlyphDeltaX(uint8_t requested_encoding) { return u8g_GetGlyphDeltaX(&u8g, requested_encoding); }
     
     void setHardwareBackup(u8g_state_cb backup_cb) { u8g_SetHardwareBackup(&u8g, backup_cb); }
     
@@ -1061,6 +1062,10 @@ class U8GLIB_LD7032_60x32 : public U8GLIB
         uint8_t en, uint8_t cs1, uint8_t di, uint8_t rw = U8G_PIN_NONE, uint8_t reset = U8G_PIN_NONE) 
       : U8GLIB(&u8g_dev_ld7032_60x32_parallel, d0, d1, d2, d3, d4, d5, d6, d7, en, cs1, U8G_PIN_NONE, di, rw, reset)
       { }
+    U8GLIB_LD7032_60x32(uint8_t options = U8G_I2C_OPT_NONE) 
+      : U8GLIB(&u8g_dev_ld7032_60x32_i2c, options)
+      { }
+
 };
 
 
