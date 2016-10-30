@@ -50,7 +50,7 @@ void I2C_stop(void);
  * Configure SPI for display
  *****************************************************************************/
 void SPIInit(uint8_t param) {
-	GPIO_InitTypeDef SPI_Pin_Init; //Настройка пинов SPI1.
+	GPIO_InitTypeDef SPI_Pin_Init; //Настройка пинов SPI.
         SPI_InitTypeDef SPI_Unit_Init; //Настройка SPI.
 
 	RCC_APB2PeriphClockCmd(SPI_RCC, ENABLE); //Вкл. тактирование SPI и PIN-ов.
@@ -276,6 +276,86 @@ uint8_t u8g_com_stm32_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *
 			while (SPI_UNIT->SR & SPI_I2S_FLAG_BSY) {};
 #endif
 			SPI_UNIT->DR = u8g_pgm_read(ptr);
+			ptr++;
+			arg_val--;
+		}
+	}
+		break;
+	}
+	return 1;
+}
+
+/*******************************************************************************
+ * Работа с дисплеем по SPI 9 bit
+ ******************************************************************************/
+#define FLAG_CMD 0
+#define FLAG_DATA 1
+uint8_t u8g_com_stm32_st7586s_hw_9bit_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
+	static uint8_t flagCmd = FLAG_CMD;
+	static uint16_t bits9; // 9 бит для отправки
+	static uint8_t buf_in[9]; // буфер, принимающий данные
+	static uint8_t num = 0; // принято байт
+	
+	switch (msg) {
+	case U8G_COM_MSG_STOP:
+		break;
+	case U8G_COM_MSG_INIT:
+		delay_init();
+		SPIInit(SPI_16BIT); //Инициализация SPI (stm32f1)
+		break;
+	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
+		flagCmd = arg_val;
+		break;
+	case U8G_COM_MSG_CHIP_SELECT:
+		if (arg_val == 0) {
+//			RCC->APB2ENR &= ~ RCC_APB2ENR_SPI1EN;
+			CS_OFF();
+		} else {
+			/* enable */
+//			RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+			CS_ON();
+		}
+		break;
+	case U8G_COM_MSG_RESET:
+		u8g_10MicroDelay();
+		break;
+	case U8G_COM_MSG_WRITE_BYTE:
+		bits9 = arg_val << 7;
+		if (flagCmd)
+			bits9 |= 1 << 15;
+		CS_ON();
+		SPI_UNIT->CR1 |= (uint16_t) SPI_DataSize_16b; //Выставляем бит 16битной передачи
+#ifndef SPI_SKIP_BUSY
+		while (SPI_UNIT->SR & SPI_I2S_FLAG_BSY) {};
+#endif
+		SPI_UNIT->DR = bits9;
+		while (SPI_UNIT->SR & SPI_I2S_FLAG_BSY) {};
+		CS_OFF();
+		SPI_UNIT->CR1 &= (uint16_t) ~SPI_DataSize_16b; //Снимаем бит, получаем восьмибитный режим
+		CS_ON();
+		break;
+		case U8G_COM_MSG_WRITE_SEQ: {
+		register uint8_t *ptr = arg_ptr;
+		uint8_t byte, i;
+		while (arg_val > 0) {
+			for (i = 0; i < 4; i++) {
+				byte = ((*ptr & 128) >> 3) | ((*ptr & 64) << 1); //Старший бит
+				*ptr <<= 2;
+				buf_in[num] |= byte >> (1 + num) | 1 << (7 - num);
+				buf_in[num + 1] = byte << (7 - num);
+#ifndef SPI_SKIP_BUSY
+				while (SPI_UNIT->SR & SPI_I2S_FLAG_BSY) {};
+#endif
+				SPI_UNIT->DR = buf_in[num];
+				buf_in[num++] = 0;
+				if (num == 8) {
+#ifndef SPI_SKIP_BUSY
+					while (SPI_UNIT->SR & SPI_I2S_FLAG_BSY) {};
+#endif
+					SPI_UNIT->DR = buf_in[8];
+					num = 0;
+				}
+			}
 			ptr++;
 			arg_val--;
 		}
