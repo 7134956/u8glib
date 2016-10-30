@@ -21,7 +21,13 @@
 #define SPI_PIN_A0			GPIO_Pin_4
 //#define SPI_SKIP_BUSY /* For speed SPI transfer. If SPI_CLK >= CPU_CLK/2 */
 /* CPOL = 1, CPHA = 1 */
-/*---------------------End configure SPI for display ------------------------*/
+/*---------------------Configure I2C for display ----------------------------*/
+#define I2C_RCC		RCC_APB1Periph_I2C2 | RCC_APB2Periph_GPIOB
+#define I2C_UNIT	I2C2
+#define	I2C_PORT	GPIOB
+#define	I2C_PINS	GPIO_Pin_10 | GPIO_Pin_11
+#define I2C_SPEED	100000
+/*---------------------End configure for display ---------------------------*/
 
 #define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */
 
@@ -37,6 +43,8 @@
 void SPIInit(uint8_t);
 void DMA1_SPI1_init(void);
 void SPI_DMA_Send(void *source, uint16_t count);
+void I2C_start(uint8_t address, uint8_t direction);
+void I2C_stop(void);
 
 /******************************************************************************
  * Configure SPI for display
@@ -440,4 +448,148 @@ void SPI_DMA_Send(void *source, uint16_t count) {
 	DMA1_Channel3->CNDTR = count;
 	/* Enable DMA1 Channel3 */
 	DMA1_Channel3->CCR |= DMA_CCR3_EN;
+}
+
+void i2c_out(uint8_t data);
+void i2c_init(void);
+
+#define DELAY_TIM_FREQUENCY 1000000 /* = 1MHZ -> timer runs in microseconds */
+#define SSD1306_I2C_ADDRESS   0x3C	//0x7A		// 011110+SA0+RW - 0x3C or 0x3D
+
+uint8_t control = 0;
+
+/*******************************************************************************
+ *
+ ******************************************************************************/
+void i2c_init(void) {
+	GPIO_InitTypeDef GPIO_InitStructure;
+	I2C_InitTypeDef I2C_InitStructure;
+
+	RCC_APB1PeriphClockCmd(I2C_RCC, ENABLE);
+	
+	I2C_DeInit(I2C_UNIT);
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_InitStructure.I2C_ClockSpeed = I2C_SPEED;
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_OwnAddress1 = 0;
+	I2C_Init(I2C_UNIT, &I2C_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = I2C_PINS;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(I2C_PORT, &GPIO_InitStructure);
+
+	I2C_Cmd(I2C_UNIT, ENABLE);
+}
+
+/*******************************************************************************
+ * Display on I2C
+ ******************************************************************************/
+uint8_t u8g_com_stm32_hw_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
+	
+	switch (msg) {
+	case U8G_COM_MSG_STOP:
+		break;
+
+	case U8G_COM_MSG_INIT:
+		i2c_init();
+		delay_init();
+		u8g_MicroDelay();
+		break;
+
+	case U8G_COM_MSG_ADDRESS: /* define cmd (arg_val = 0) or data mode (arg_val = 1) */
+		if (arg_val == 0) {
+			control = 0;
+		} else {
+			control = 0x40;
+		}
+		u8g_10MicroDelay();
+		break;
+
+	case U8G_COM_MSG_RESET:
+
+		u8g_10MicroDelay();
+		break;
+
+	case U8G_COM_MSG_WRITE_BYTE:
+
+		i2c_out(arg_val);
+		u8g_MicroDelay();
+		break;
+
+	case U8G_COM_MSG_WRITE_SEQ:
+	case U8G_COM_MSG_WRITE_SEQ_P: {
+		register uint8_t *ptr = arg_ptr;
+		I2C_start(SSD1306_I2C_ADDRESS, I2C_Direction_Transmitter);
+		I2C_SendData(I2C_UNIT, control);
+		while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+		}
+		while (arg_val > 0) {
+			I2C_SendData(I2C_UNIT, *ptr++);
+			arg_val--;
+			while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+			}
+		}
+		I2C_stop();
+		u8g_MicroDelay();
+	}
+		break;
+	}
+	return 1;
+}
+
+/*******************************************************************************
+ *
+ ******************************************************************************/
+void I2C_stop() {
+	// Send I2C1 STOP Condition
+	I2C_GenerateSTOP(I2C_UNIT, ENABLE);
+}
+
+/*******************************************************************************
+ *
+ ******************************************************************************/
+void I2C_start(uint8_t address, uint8_t direction) {
+
+	// wait until I2C1 is not busy anymore
+	while (I2C_GetFlagStatus(I2C_UNIT, I2C_FLAG_BUSY)) {
+	}
+	// Send I2C1 START condition
+	I2C_GenerateSTART(I2C_UNIT, ENABLE);
+	// wait for I2C1 EV5 --> Slave has acknowledged start condition
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_MODE_SELECT)) {
+	}
+	// Send slave Address for write
+	I2C_Send7bitAddress(I2C_UNIT, address << 1, direction);
+	/* wait for I2C1 EV6, check if
+	 * either Slave has acknowledged Master transmitter or
+	 * Master receiver mode, depending on the transmission
+	 * direction
+	 */
+	if (direction == I2C_Direction_Transmitter) {
+		while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+		}
+	} else if (direction == I2C_Direction_Receiver) {
+		while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
+		}
+	}
+}
+
+/*******************************************************************************
+ *
+ ******************************************************************************/
+void i2c_out(uint8_t data) {
+	I2C_start(SSD1306_I2C_ADDRESS, I2C_Direction_Transmitter);
+	//Wire.write(control);
+	I2C_SendData(I2C_UNIT, control);
+	// wait for I2C1 EV8_2 --> byte has been transmitted
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+	}
+	I2C_SendData(I2C_UNIT, data);
+	// wait for I2C1 EV8_2 --> byte has been transmitted
+	while (!I2C_CheckEvent(I2C_UNIT, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+	}
+	I2C_stop();
 }
